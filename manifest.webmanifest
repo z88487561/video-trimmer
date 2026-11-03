@@ -1,0 +1,19 @@
+{
+  "name": "本機影片無損裁切",
+  "short_name": "影片裁切",
+  "description": "在瀏覽器本機以串流複製裁切影片，不上傳、不重新編碼。",
+  "lang": "zh-Hant",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6fa",
+  "theme_color": "#123c66",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

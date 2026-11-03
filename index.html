@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#123c66">
+    <meta name="description" content="在瀏覽器本機裁切影片，不上傳、不重新編碼。">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./app.css">
+    <title>本機影片無損裁切</title>
+</head>
+<body>
+    <main class="app">
+        <header class="topbar">
+            <a class="brand" href="./index.html" aria-label="本機影片無損裁切首頁">
+                <span class="brand-icon" aria-hidden="true">✂</span>
+                <span>本機影片無損裁切</span>
+            </a>
+            <div class="top-actions">
+                <button class="button button-quiet" id="installButton" type="button" hidden>安裝 PWA</button>
+            </div>
+        </header>
+
+        <section class="intro">
+            <p class="eyebrow">只在你的裝置上處理</p>
+            <h1>裁掉片頭與片尾</h1>
+            <p>保留選定區間並直接複製影音資料，不重新編碼、不上傳影片。</p>
+        </section>
+
+        <section class="workspace" aria-label="影片裁切工作區">
+            <div class="preview-panel">
+                <video id="preview" controls playsinline preload="metadata" aria-label="影片預覽"></video>
+                <label class="file-picker button button-primary" for="videoFile">選擇影片</label>
+                <input id="videoFile" type="file" accept="video/*,.mkv,.avi,.mov,.webm,.mp4,.m4v,.mts,.m2ts,.ts,.3gp,.ogv">
+                <p id="fileName" class="file-name">尚未選取影片</p>
+            </div>
+
+            <div class="edit-panel">
+                <div class="section-title">
+                    <h2>保留的時間範圍</h2>
+                    <span id="durationLabel" class="duration">總長度 —</span>
+                </div>
+                <div class="time-fields">
+                    <label class="time-field">
+                        <span>開始時間</span>
+                        <input id="startTime" type="number" min="0" step="0.01" value="0" inputmode="decimal" aria-label="裁切開始秒數">
+                        <span class="unit">秒</span>
+                    </label>
+                    <button class="button button-quiet mark-button" id="markStart" type="button" disabled>設為目前播放位置</button>
+                    <label class="time-field">
+                        <span>結束時間</span>
+                        <input id="endTime" type="number" min="0" step="0.01" value="0" inputmode="decimal" aria-label="裁切結束秒數">
+                        <span class="unit">秒</span>
+                    </label>
+                    <button class="button button-quiet mark-button" id="markEnd" type="button" disabled>設為目前播放位置</button>
+                </div>
+
+                <div class="notice notice-warning">
+                    <strong>無重新編碼的限制</strong>
+                    <p>只能在影音封包／關鍵影格邊界裁切，實際起訖點可能與輸入時間略有差異；若要求逐影格精準，必須重新編碼。</p>
+                </div>
+                <div class="notice notice-info" id="privacyNotice">
+                    <strong>本機處理</strong>
+                    <p>影片只會由瀏覽器讀取。第一次裁切會從 jsDelivr 下載約 32 MB 的處理引擎並快取於本機；影片內容不會傳送到網路。</p>
+                </div>
+                <p class="small-note">請由 localhost 或 HTTPS 開啟；直接以 file:// 開啟時，瀏覽器會停用 PWA 與本機處理 Worker。</p>
+
+                <button class="button button-primary trim-button" id="trimButton" type="button" disabled>裁切並下載</button>
+                <p id="status" class="status" role="status" aria-live="polite">請先選擇影片。</p>
+                <a id="downloadLink" class="button button-success download-link" hidden>未開始下載？點此重試</a>
+                <p class="small-note">支援容器依 FFmpeg 核心與瀏覽器而異；輸出維持原副檔名及影音編碼。超大型輸出仍受瀏覽器可用記憶體限制。</p>
+            </div>
+        </section>
+
+        <footer>
+            <span>不重新編碼 · 不上傳 · 由瀏覽器本機執行</span>
+            <span id="pwaStatus">PWA 狀態確認中…</span>
+        </footer>
+    </main>
+    <script type="module" src="./app.js"></script>
+</body>
+</html>
