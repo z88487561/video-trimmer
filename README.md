@@ -4,15 +4,7 @@
 
 ## 開啟與安裝
 
-PWA 與 WebAssembly Worker 需要安全來源。於工作站根目錄執行：
 
-```powershell
-python -m http.server 8000 --bind 127.0.0.1
-```
-
-瀏覽 `http://127.0.0.1:8000/video-trimmer/`，再由瀏覽器選單安裝。若主工作站以 `file://` 開啟，裁切頁仍會顯示，但瀏覽器不允許註冊 Service Worker 或執行此 Worker；請改用上述 localhost 網址。
-
-裁切按鈕會直接啟動儲存流程。支援 File System Access API 的瀏覽器會先請你選擇儲存位置，裁切完成後直接寫入檔案；其他瀏覽器會自動觸發下載，若瀏覽器阻擋則可使用頁面顯示的重試連結。
 
 ## 無損裁切限制
 
