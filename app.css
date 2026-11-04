@@ -70,6 +70,7 @@ video { display: block; width: 100%; height: 100%; background: #101923; object-f
 .file-picker { margin-top: 16px; }
 
 .file-name { margin: 10px 0 0; overflow-wrap: anywhere; color: #64788e; font-size: 13px; }
+.memory-warning { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; color: #6b4c00; background: #fff6db; font-size: 12px; line-height: 1.55; }
 
 h2 { margin: 0; font-size: 18px; }
 
@@ -109,6 +110,8 @@ h2 { margin: 0; font-size: 18px; }
 .crop-hint { margin: -5px 0 0 29px; }
 .compression-toggle { padding-top: 10px; border-top: 1px solid #dfe7ef; }
 .compression-options { display: grid; gap: 12px; padding-left: 29px; }
+.threshold-input { display: inline-flex; align-items: center; gap: 7px; color: #53677d; }
+.threshold-input input { width: 92px; min-height: 38px; padding: 6px 9px; border: 1px solid #cbd7e3; border-radius: 8px; color: #172b42; }
 
 .button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; padding: 9px 14px; border: 1px solid transparent; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 700; text-align: center; text-decoration: none; }
 
@@ -162,9 +165,3 @@ footer { margin-top: 18px; color: #72849a; font-size: 12px; }
     .select-option { align-items: flex-start; flex-direction: column; gap: 6px; }
     .select-option select { width: 100%; }
 }
-
-
-/* MP4 performance diagnostics */
-.diagnostic-panel { display: grid; gap: 12px; padding: 14px; border-top: 1px solid #e6edf3; }
-.diagnostic-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.diagnostics-output { max-height: 320px; overflow: auto; margin: 0; padding: 12px; border-radius: 8px; color: #d9e6f3; background: #142235; font: 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }

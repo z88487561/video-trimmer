@@ -55,6 +55,7 @@
                 <label class="file-picker button button-primary" for="videoFile">選擇影片</label>
                 <input id="videoFile" type="file" accept="video/*,.mkv,.avi,.mov,.webm,.mp4,.m4v,.mts,.m2ts,.ts,.3gp,.ogv">
                 <p id="fileName" class="file-name">尚未選取影片</p>
+                <p id="memoryWarning" class="memory-warning" role="status" aria-live="polite" hidden></p>
             </div>
 
             <div class="edit-panel">
@@ -141,6 +142,31 @@
                     <p class="small-note">旋轉、調整比例或需要縮小解析度時會重新編碼並輸出 MP4；壓縮只會縮小，不會放大。低於或等於 480p 的來源不會因壓縮選項而重新編碼。</p>
                     </section>
                 </details>
+                <details class="fold-section">
+                    <summary class="fold-summary">
+                        <span>讀取效能與記憶體</span>
+                        <span class="fold-description">比較 MEMFS／WORKERFS</span>
+                        <span class="fold-indicator" aria-hidden="true"></span>
+                    </summary>
+                    <section class="options-panel" aria-label="來源檔案讀取與記憶體設定">
+                        <label class="select-option">
+                            <span>來源讀取方式</span>
+                            <select id="readMode">
+                                <option value="auto" selected>自動（門檻內 MEMFS，否則 WORKERFS）</option>
+                                <option value="memfs">MEMFS（較快，使用較多記憶體）</option>
+                                <option value="workerfs">WORKERFS（較省記憶體）</option>
+                            </select>
+                        </label>
+                        <label class="select-option">
+                            <span>MEMFS 檔案大小門檻</span>
+                            <span class="threshold-input">
+                                <input id="memfsThreshold" type="number" min="64" max="2048" step="64" value="256" inputmode="numeric">
+                                <span>MB</span>
+                            </span>
+                        </label>
+                        <p class="small-note">自動模式會依此門檻及裝置回報的記憶體調整方式，不依 Android／PC 平台判斷。可切換讀取方式比較「處理合計」；WORKERFS 的實際來源讀取時間計入 FFmpeg 階段。大型影片建議縮短裁切區間或先降低輸出解析度。</p>
+                    </section>
+                </details>
 
                 <div class="notice notice-warning">
                     <strong>無重新編碼的限制</strong>
@@ -151,36 +177,6 @@
                     <p>影片只會由瀏覽器讀取。第一次處理會從 jsDelivr 下載約 32 MB 的處理引擎並快取於本機；影片內容不會傳送到網路。</p>
                 </div>
                 <p class="small-note">請由 localhost 或 HTTPS 開啟；直接以 file:// 開啟時，瀏覽器會停用 PWA 與本機處理 Worker。</p>
-
-                <details class="fold-section diagnostic-section" open>
-                    <summary class="fold-summary">
-                        <span>MP4 效能診斷</span>
-                        <span class="fold-description">測試用設定</span>
-                        <span class="fold-indicator" aria-hidden="true"></span>
-                    </summary>
-                    <div class="diagnostic-panel">
-                        <label class="select-option">
-                            <span>來源讀取方式</span>
-                            <select id="diagnosticInputMode">
-                                <option value="workerfs" selected>WORKERFS（目前方式）</option>
-                                <option value="memfs">MEMFS（先載入整支影片）</option>
-                            </select>
-                        </label>
-                        <label class="select-option">
-                            <span>無損裁切的軌道</span>
-                            <select id="diagnosticStreamMode">
-                                <option value="all" selected>全部軌道（原本行為）</option>
-                                <option value="av">僅影像＋音訊（排除字幕／資料）</option>
-                            </select>
-                        </label>
-                        <p class="small-note">建議用同一支 MP4 分別測試 WORKERFS 與 MEMFS。MEMFS 會額外占用約一份來源檔案大小的記憶體；大型影片請小心。診斷計時會分開記錄引擎、來源準備、FFmpeg 執行、輸出讀取及 Blob 建立時間。</p>
-                        <div class="diagnostic-actions">
-                            <button class="button button-quiet" id="copyDiagnostics" type="button" disabled>複製診斷報告</button>
-                            <button class="button button-quiet" id="clearDiagnostics" type="button">清除報告</button>
-                        </div>
-                        <pre id="diagnosticsOutput" class="diagnostics-output">尚無診斷資料。完成一次裁切後，這裡會顯示各階段耗時。</pre>
-                    </div>
-                </details>
 
                 <button class="button button-primary trim-button" id="trimButton" type="button" disabled>裁切並下載</button>
                 <p id="processingMode" class="processing-mode">目前模式：封包複製，不重新編碼影片。</p>
