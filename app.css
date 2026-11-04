@@ -85,8 +85,20 @@ h2 { margin: 0; font-size: 18px; }
 
 .unit { padding-right: 4px; }
 
+.fold-section { margin: 0 0 10px; border: 1px solid #dfe7ef; border-radius: 11px; background: #fff; }
+.fold-summary { display: flex; min-height: 48px; align-items: center; gap: 10px; padding: 11px 14px; color: #233d56; cursor: pointer; font-size: 15px; font-weight: 700; list-style: none; }
+.fold-summary::-webkit-details-marker { display: none; }
+.fold-summary::marker { content: ""; }
+.fold-summary:focus-visible { border-radius: 10px; outline: 3px solid #90c6f0; outline-offset: 2px; }
+.fold-description { margin-left: auto; color: #667b90; font-size: 12px; font-weight: 400; }
+.fold-indicator { position: relative; width: 18px; height: 18px; flex: 0 0 18px; margin-left: auto; }
+.fold-indicator::before, .fold-indicator::after { position: absolute; top: 8px; left: 4px; width: 10px; height: 2px; border-radius: 1px; background: #54718c; content: ""; transition: transform .18s ease; }
+.fold-indicator::after { transform: rotate(90deg); }
+.fold-section[open] .fold-indicator::after { transform: rotate(0); }
+.fold-section > .time-fields { margin: 0; padding: 0 14px 14px; }
+.fold-section > .options-panel { margin: 0; border: 0; border-top: 1px solid #e6edf3; border-radius: 0 0 11px 11px; }
+
 .options-panel { display: grid; gap: 12px; margin: 18px 0; padding: 16px; border: 1px solid #dfe7ef; border-radius: 12px; background: #f9fbfd; }
-.options-panel > .section-title { margin-bottom: 2px; }
 .check-option, .select-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #344b62; font-size: 14px; }
 .check-option { justify-content: flex-start; cursor: pointer; }
 .check-option input { width: 17px; height: 17px; accent-color: #1769aa; }
@@ -117,6 +129,8 @@ h2 { margin: 0; font-size: 18px; }
 
 .trim-button { width: 100%; margin-top: 8px; }
 
+.processing-mode { margin: 8px 0 0; color: #18764b; font-size: 12px; font-weight: 700; }
+
 .status { min-height: 22px; margin: 12px 0 0; color: #53677d; font-size: 13px; overflow-wrap: anywhere; }
 .status[data-state="error"] { color: #b42318; }
 .status[data-state="success"] { color: #18764b; }
@@ -143,7 +157,8 @@ footer { margin-top: 18px; color: #72849a; font-size: 12px; }
     .top-actions { gap: 6px; }
     .top-actions .button { padding: 8px 10px; font-size: 12px; }
     .options-panel { padding: 13px; }
-    .options-panel > .section-title { align-items: flex-start; flex-direction: column; gap: 4px; }
+    .fold-summary { flex-wrap: wrap; }
+    .fold-description { margin-left: 0; }
     .select-option { align-items: flex-start; flex-direction: column; gap: 6px; }
     .select-option select { width: 100%; }
 }

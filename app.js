@@ -34,6 +34,7 @@ const elements = {
     resolution: document.getElementById("resolution"),
     quality: document.getElementById("quality"),
     trim: document.getElementById("trimButton"),
+    processingMode: document.getElementById("processingMode"),
     status: document.getElementById("status"),
     download: document.getElementById("downloadLink"),
     install: document.getElementById("installButton"),
@@ -49,6 +50,7 @@ let installPrompt = null;
 let recentFfmpegLogs = [];
 let cropCenter = { x: 0.5, y: 0.5 };
 let cropDrag = null;
+let activeProcessingMode = "copy";
 
 function setStatus(message, state = "") {
     elements.status.textContent = message;
@@ -308,8 +310,20 @@ function updateActionLabel() {
     try {
         const options = getEditOptions();
         elements.trim.textContent = options.encodeVideo || options.removeAudio ? "處理並下載" : "裁切並下載";
+        if (options.encodeVideo) {
+            elements.processingMode.textContent = "目前模式：重新編碼並輸出 MP4。";
+            elements.processingMode.dataset.mode = "encode";
+        } else if (options.removeAudio) {
+            elements.processingMode.textContent = "目前模式：複製影片封包並移除音訊；影片不重新編碼。";
+            elements.processingMode.dataset.mode = "copy";
+        } else {
+            elements.processingMode.textContent = "目前模式：封包複製，不重新編碼影片。";
+            elements.processingMode.dataset.mode = "copy";
+        }
     } catch {
         elements.trim.textContent = "處理並下載";
+        elements.processingMode.textContent = "目前模式：請確認影片資訊與輸出選項。";
+        elements.processingMode.dataset.mode = "error";
     }
 }
 
@@ -353,7 +367,10 @@ async function ensureEngine() {
             if (message) {
                 recentFfmpegLogs.push(message);
                 if (recentFfmpegLogs.length > 6) recentFfmpegLogs.shift();
-                elements.status.textContent = `正在本機處理：${message.slice(0, 180)}`;
+                const operation = activeProcessingMode === "encode"
+                    ? "正在重新編碼影片"
+                    : "正在複製影片封包（不重新編碼）";
+                elements.status.textContent = `${operation}：${message.slice(0, 180)}`;
             }
         });
         await ffmpeg.load({ coreURL: coreBlobUrl, wasmURL: wasmBlobUrl });
@@ -399,6 +416,7 @@ async function trimVideo() {
     }
 
     setBusy(true);
+    activeProcessingMode = options.encodeVideo ? "encode" : "copy";
     let mounted = false;
     let inputDirectoryCreated = false;
     let engine;
@@ -472,8 +490,8 @@ async function trimVideo() {
         args.push(outputFile);
 
         setStatus(options.encodeVideo
-            ? "正在本機重新編碼影片；請保持頁面開啟…"
-            : "正在本機複製影音封包；請保持頁面開啟…", "busy");
+            ? "正在重新編碼所選片段；請保持頁面開啟…"
+            : `正在複製所選片段的影音封包${options.removeAudio ? "並移除音訊" : ""}；影片不會重新編碼，請保持頁面開啟…`, "busy");
         recentFfmpegLogs = [];
         const exitCode = await engine.exec(args);
         if (exitCode !== 0) {
@@ -494,7 +512,8 @@ async function trimVideo() {
             const writable = await saveHandle.createWritable();
             await writable.write(outputBlob);
             await writable.close();
-            setStatus(`處理完成，已儲存 ${saveHandle.name}（${formatFileSize(outputBlob.size)}）。`, "success");
+            const mode = options.encodeVideo ? "重新編碼完成" : "封包複製完成，影片未重新編碼";
+            setStatus(`${mode}，已儲存 ${saveHandle.name}（${formatFileSize(outputBlob.size)}）。`, "success");
         } else {
             outputUrl = URL.createObjectURL(outputBlob);
             elements.download.href = outputUrl;
@@ -506,7 +525,8 @@ async function trimVideo() {
                 URL.revokeObjectURL(downloadUrl);
                 if (outputUrl === downloadUrl) outputUrl = null;
             }, 60_000);
-            setStatus(`處理完成，已觸發下載 ${outputName}（${formatFileSize(outputBlob.size)}）。若瀏覽器未開始下載，可點下方連結重試。`, "success");
+            const mode = options.encodeVideo ? "重新編碼完成" : "封包複製完成，影片未重新編碼";
+            setStatus(`${mode}，已觸發下載 ${outputName}（${formatFileSize(outputBlob.size)}）。若瀏覽器未開始下載，可點下方連結重試。`, "success");
         }
     } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
@@ -515,6 +535,7 @@ async function trimVideo() {
             setStatus(error instanceof Error ? error.message : String(error), "error");
         }
     } finally {
+        activeProcessingMode = "copy";
         if (mounted && engine) {
             try {
                 await engine.unmount(mountPoint);
