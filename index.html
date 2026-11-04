@@ -152,6 +152,36 @@
                 </div>
                 <p class="small-note">請由 localhost 或 HTTPS 開啟；直接以 file:// 開啟時，瀏覽器會停用 PWA 與本機處理 Worker。</p>
 
+                <details class="fold-section diagnostic-section" open>
+                    <summary class="fold-summary">
+                        <span>MP4 效能診斷</span>
+                        <span class="fold-description">測試用設定</span>
+                        <span class="fold-indicator" aria-hidden="true"></span>
+                    </summary>
+                    <div class="diagnostic-panel">
+                        <label class="select-option">
+                            <span>來源讀取方式</span>
+                            <select id="diagnosticInputMode">
+                                <option value="workerfs" selected>WORKERFS（目前方式）</option>
+                                <option value="memfs">MEMFS（先載入整支影片）</option>
+                            </select>
+                        </label>
+                        <label class="select-option">
+                            <span>無損裁切的軌道</span>
+                            <select id="diagnosticStreamMode">
+                                <option value="all" selected>全部軌道（原本行為）</option>
+                                <option value="av">僅影像＋音訊（排除字幕／資料）</option>
+                            </select>
+                        </label>
+                        <p class="small-note">建議用同一支 MP4 分別測試 WORKERFS 與 MEMFS。MEMFS 會額外占用約一份來源檔案大小的記憶體；大型影片請小心。診斷計時會分開記錄引擎、來源準備、FFmpeg 執行、輸出讀取及 Blob 建立時間。</p>
+                        <div class="diagnostic-actions">
+                            <button class="button button-quiet" id="copyDiagnostics" type="button" disabled>複製診斷報告</button>
+                            <button class="button button-quiet" id="clearDiagnostics" type="button">清除報告</button>
+                        </div>
+                        <pre id="diagnosticsOutput" class="diagnostics-output">尚無診斷資料。完成一次裁切後，這裡會顯示各階段耗時。</pre>
+                    </div>
+                </details>
+
                 <button class="button button-primary trim-button" id="trimButton" type="button" disabled>裁切並下載</button>
                 <p id="processingMode" class="processing-mode">目前模式：封包複製，不重新編碼影片。</p>
                 <p id="status" class="status" role="status" aria-live="polite">請先選擇影片。</p>

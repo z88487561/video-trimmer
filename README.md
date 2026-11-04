@@ -15,3 +15,10 @@ https://z88487561.github.io/video-trimmer/
 ## 執行核心與授權
 
 FFmpeg WASM JavaScript client（`vendor/ffmpeg/`）採 MIT 授權。FFmpeg 核心不隨此工作區散佈；首次執行時從 `@ffmpeg/core@0.12.10` jsDelivr CDN 載入並快取到瀏覽器。該 FFmpeg 核心採 GPL-2.0-or-later，使用／重新散佈前請依其授權條款辦理。核心版本固定，影片檔案不會送至 CDN。
+
+
+## MP4 效能診斷版
+
+診斷區可切換 WORKERFS（直接掛載來源 File）與 MEMFS（先讀取來源 ArrayBuffer，再寫入 FFmpeg 虛擬檔案系統），並可比較「全部軌道」與「僅影像＋音訊」的 Stream Copy 結果。每次處理後會列出引擎準備、來源載入／掛載、FFmpeg exec、readFile、Blob 建立及流程總時間，並可複製報告。
+
+建議先用同一支 MP4、相同裁切區間、相同軌道設定，分別執行 WORKERFS 與 MEMFS。比較時以「FFmpeg exec」時間為主要依據；MEMFS 的來源讀取與寫入成本另列。MEMFS 會增加記憶體占用，不建議在大型影片或記憶體不足的手機上測試。

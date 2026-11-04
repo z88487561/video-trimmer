@@ -38,7 +38,12 @@ const elements = {
     status: document.getElementById("status"),
     download: document.getElementById("downloadLink"),
     install: document.getElementById("installButton"),
-    pwaStatus: document.getElementById("pwaStatus")
+    pwaStatus: document.getElementById("pwaStatus"),
+    diagnosticInputMode: document.getElementById("diagnosticInputMode"),
+    diagnosticStreamMode: document.getElementById("diagnosticStreamMode"),
+    diagnosticsOutput: document.getElementById("diagnosticsOutput"),
+    copyDiagnostics: document.getElementById("copyDiagnostics"),
+    clearDiagnostics: document.getElementById("clearDiagnostics")
 };
 
 let selectedFile = null;
@@ -70,7 +75,9 @@ function setBusy(busy) {
     for (const control of [
         elements.removeAudio, elements.rotation, elements.aspectRatio,
         elements.ratioWidth, elements.ratioHeight, elements.compressVideo,
-        elements.resolution, elements.quality
+        elements.resolution, elements.quality,
+        elements.diagnosticInputMode, elements.diagnosticStreamMode,
+        elements.copyDiagnostics, elements.clearDiagnostics
     ]) control.disabled = busy;
 }
 
@@ -391,6 +398,37 @@ async function ensureEngine() {
     }
 }
 
+function formatSeconds(ms) {
+    return `${(ms / 1000).toFixed(3)} 秒`;
+}
+
+function renderDiagnosticReport(report) {
+    const lines = [
+        "=== MP4 效能診斷報告 ===",
+        `時間：${new Date().toLocaleString()}`,
+        `瀏覽器：${navigator.userAgent}`,
+        `檔案：${report.fileName}`,
+        `大小：${formatFileSize(report.fileSize)}`,
+        `副檔名：${report.extension}`,
+        `裁切區間：${report.start.toFixed(3)}s ～ ${report.end.toFixed(3)}s（片段 ${report.clipDuration.toFixed(3)}s）`,
+        `來源讀取：${report.inputMode}`,
+        `軌道模式：${report.streamMode}`,
+        `處理模式：${report.processingMode}`,
+        "",
+        "--- 階段耗時 ---",
+        ...Object.entries(report.timings).map(([label, ms]) => `${label}：${formatSeconds(ms)}`),
+        `FFmpeg 執行速度：${report.execSpeed || "未計算"}`,
+        `輸出大小：${report.outputSize ? formatFileSize(report.outputSize) : "尚未產生"}`,
+        "",
+        "--- FFmpeg 最近訊息 ---",
+        ...(report.logs?.length ? report.logs : ["（無）"]),
+        "",
+        "注意：MEMFS 測試包含來源檔案讀取與寫入 WASM FS 的額外成本；請同時比較 FFmpeg exec 本身的耗時。"
+    ];
+    elements.diagnosticsOutput.textContent = lines.join("\n");
+    elements.copyDiagnostics.disabled = false;
+}
+
 async function trimVideo() {
     if (isBusy || !selectedFile) return;
     clearDownload();
@@ -417,30 +455,54 @@ async function trimVideo() {
 
     setBusy(true);
     activeProcessingMode = options.encodeVideo ? "encode" : "copy";
+    const totalStart = performance.now();
+    const timings = {};
+    const mark = (label, start) => { timings[label] = performance.now() - start; };
+    const inputMode = elements.diagnosticInputMode.value;
+    const streamMode = elements.diagnosticStreamMode.value;
     let mounted = false;
     let inputDirectoryCreated = false;
     let engine;
+    let outputSize = 0;
+    let sourcePath = "";
     const mountPoint = "/local-video";
     const outputPath = "/processed-video";
+    const inputName = `source${extension}`;
 
     try {
         if (saveHandlePromise) setStatus("請選擇裁切影片的儲存位置…", "busy");
         const saveHandle = saveHandlePromise ? await saveHandlePromise : null;
+
+        let stageStart = performance.now();
         setStatus("正在準備本機處理引擎…", "busy");
         engine = await ensureEngine();
+        mark("引擎準備（含首次載入，如有）", stageStart);
+
+        stageStart = performance.now();
         await engine.createDir(mountPoint);
         inputDirectoryCreated = true;
-        await engine.mount("WORKERFS", {
-            blobs: [{ name: `source${extension}`, data: selectedFile }]
-        }, mountPoint);
-        mounted = true;
+        if (inputMode === "workerfs") {
+            await engine.mount("WORKERFS", {
+                blobs: [{ name: inputName, data: selectedFile }]
+            }, mountPoint);
+            mounted = true;
+            sourcePath = `${mountPoint}/${inputName}`;
+            mark("來源掛載 WORKERFS", stageStart);
+        } else {
+            const readStart = performance.now();
+            const sourceBytes = new Uint8Array(await selectedFile.arrayBuffer());
+            mark("來源 File → ArrayBuffer", readStart);
+            const memfsWriteStart = performance.now();
+            sourcePath = `${mountPoint}/${inputName}`;
+            await engine.writeFile(sourcePath, sourceBytes);
+            mark("MEMFS 寫入（含 Worker 傳輸）", memfsWriteStart);
+        }
 
-        const inputPath = `${mountPoint}/source${extension}`;
         const outputFile = `${outputPath}${outputExtension}`;
         const duration = range.end - range.start;
         const args = [
             "-y", "-ss", range.start.toFixed(3),
-            "-i", inputPath,
+            "-i", sourcePath,
             "-t", duration.toFixed(3)
         ];
         if (options.encodeVideo) {
@@ -481,7 +543,12 @@ async function trimVideo() {
                 "-crf", options.compress ? options.quality : "23", "-pix_fmt", "yuv420p",
                 "-movflags", "+faststart");
         } else {
-            args.push("-map", "0", "-c", "copy", "-avoid_negative_ts", "make_zero");
+            if (streamMode === "av") {
+                args.push("-map", "0:v?", "-map", "0:a?", "-sn", "-dn");
+            } else {
+                args.push("-map", "0");
+            }
+            args.push("-c", "copy", "-avoid_negative_ts", "make_zero");
             if (options.removeAudio) args.push("-an");
             if ([".mp4", ".mov", ".m4v", ".3gp"].includes(extension)) {
                 args.push("-movflags", "+faststart");
@@ -491,29 +558,36 @@ async function trimVideo() {
 
         setStatus(options.encodeVideo
             ? "正在重新編碼所選片段；請保持頁面開啟…"
-            : `正在複製所選片段的影音封包${options.removeAudio ? "並移除音訊" : ""}；影片不會重新編碼，請保持頁面開啟…`, "busy");
+            : `正在複製所選片段的影音封包${options.removeAudio ? "並移除音訊" : ""}；請保持頁面開啟…`, "busy");
         recentFfmpegLogs = [];
+        stageStart = performance.now();
         const exitCode = await engine.exec(args);
+        mark("FFmpeg exec（核心處理）", stageStart);
         if (exitCode !== 0) {
             const details = recentFfmpegLogs.slice(-4).join(" | ");
             throw new Error(`影片處理失敗（FFmpeg 結束碼 ${exitCode}）。${details}`);
         }
 
+        stageStart = performance.now();
         const result = await engine.readFile(outputFile);
+        mark("readFile（WASM FS → JS）", stageStart);
         if (!(result instanceof Uint8Array) || result.byteLength === 0) {
             throw new Error("處理完成但沒有輸出影片，請確認來源格式、裁切區間與所選編碼選項。");
         }
+        outputSize = result.byteLength;
         await engine.deleteFile(outputFile);
+
+        stageStart = performance.now();
         const outputBlob = new Blob([result], {
             type: options.encodeVideo ? "video/mp4" : selectedFile.type || "application/octet-stream"
         });
+        mark("Blob 建立", stageStart);
         const outputName = `${baseName}_${options.encodeVideo ? "edited" : "trimmed"}${outputExtension}`;
         if (saveHandle) {
             const writable = await saveHandle.createWritable();
             await writable.write(outputBlob);
             await writable.close();
-            const mode = options.encodeVideo ? "重新編碼完成" : "封包複製完成，影片未重新編碼";
-            setStatus(`${mode}，已儲存 ${saveHandle.name}（${formatFileSize(outputBlob.size)}）。`, "success");
+            setStatus(`${options.encodeVideo ? "重新編碼完成" : "封包複製完成，影片未重新編碼"}，已儲存 ${saveHandle.name}（${formatFileSize(outputBlob.size)}）。`, "success");
         } else {
             outputUrl = URL.createObjectURL(outputBlob);
             elements.download.href = outputUrl;
@@ -525,15 +599,50 @@ async function trimVideo() {
                 URL.revokeObjectURL(downloadUrl);
                 if (outputUrl === downloadUrl) outputUrl = null;
             }, 60_000);
-            const mode = options.encodeVideo ? "重新編碼完成" : "封包複製完成，影片未重新編碼";
-            setStatus(`${mode}，已觸發下載 ${outputName}（${formatFileSize(outputBlob.size)}）。若瀏覽器未開始下載，可點下方連結重試。`, "success");
+            setStatus(`${options.encodeVideo ? "重新編碼完成" : "封包複製完成，影片未重新編碼"}，已觸發下載 ${outputName}（${formatFileSize(outputBlob.size)}）。若瀏覽器未開始下載，可點下方連結重試。`, "success");
         }
+
+        const execMs = timings["FFmpeg exec（核心處理）"];
+        const clipDuration = range.end - range.start;
+        const speed = execMs > 0 ? `${(clipDuration / (execMs / 1000)).toFixed(2)}X` : "—";
+        mark("裁切流程總時間（不含儲存／下載）", totalStart);
+        renderDiagnosticReport({
+            fileName: selectedFile.name,
+            fileSize: selectedFile.size,
+            extension,
+            start: range.start,
+            end: range.end,
+            clipDuration,
+            inputMode: inputMode.toUpperCase(),
+            streamMode: streamMode === "av" ? "僅影像＋音訊" : "全部軌道",
+            processingMode: options.encodeVideo ? "重新編碼" : "Stream Copy",
+            timings,
+            execSpeed: speed,
+            outputSize,
+            logs: recentFfmpegLogs.slice(-8)
+        });
     } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
             setStatus("已取消儲存，影片未裁切。");
         } else {
             setStatus(error instanceof Error ? error.message : String(error), "error");
         }
+        mark("失敗前流程總時間", totalStart);
+        renderDiagnosticReport({
+            fileName: selectedFile.name,
+            fileSize: selectedFile.size,
+            extension: extension || "未知",
+            start: range?.start ?? 0,
+            end: range?.end ?? 0,
+            clipDuration: range ? range.end - range.start : 0,
+            inputMode: inputMode.toUpperCase(),
+            streamMode: streamMode === "av" ? "僅影像＋音訊" : "全部軌道",
+            processingMode: options?.encodeVideo ? "重新編碼" : "Stream Copy",
+            timings,
+            execSpeed: "未完成",
+            outputSize,
+            logs: recentFfmpegLogs.slice(-8)
+        });
     } finally {
         activeProcessingMode = "copy";
         if (mounted && engine) {
@@ -541,6 +650,13 @@ async function trimVideo() {
                 await engine.unmount(mountPoint);
             } catch (error) {
                 console.error("無法卸載本機影片來源：", error);
+            }
+        }
+        if (inputMode === "memfs" && sourcePath && engine) {
+            try {
+                await engine.deleteFile(sourcePath);
+            } catch (error) {
+                console.error("無法清除 MEMFS 來源影片：", error);
             }
         }
         if (inputDirectoryCreated && engine) {
@@ -702,6 +818,26 @@ elements.cropFrame.addEventListener("keydown", event => {
     cropCenter.y = Math.max(0, Math.min(1, cropCenter.y));
     updateCropFrame();
 });
+elements.copyDiagnostics.addEventListener("click", async () => {
+    const report = elements.diagnosticsOutput.textContent;
+    try {
+        await navigator.clipboard.writeText(report);
+        setStatus("診斷報告已複製。", "success");
+    } catch {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(elements.diagnosticsOutput);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        setStatus("瀏覽器不允許自動複製，已選取診斷報告，請手動複製。", "error");
+    }
+});
+
+elements.clearDiagnostics.addEventListener("click", () => {
+    elements.diagnosticsOutput.textContent = "尚無診斷資料。完成一次裁切後，這裡會顯示各階段耗時。";
+    elements.copyDiagnostics.disabled = true;
+});
+
 elements.trim.addEventListener("click", trimVideo);
 
 window.addEventListener("beforeinstallprompt", event => {
