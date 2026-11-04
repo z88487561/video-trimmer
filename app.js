@@ -483,9 +483,6 @@ async function trimVideo() {
         } else {
             args.push("-map", "0", "-c", "copy", "-avoid_negative_ts", "make_zero");
             if (options.removeAudio) args.push("-an");
-            if ([".mp4", ".mov", ".m4v", ".3gp"].includes(extension)) {
-                args.push("-movflags", "+faststart");
-            }
         }
         args.push(outputFile);
 
