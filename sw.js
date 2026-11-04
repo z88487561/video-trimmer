@@ -1,4 +1,4 @@
-const CACHE_NAME = "video-trimmer-app-v15";
+const CACHE_NAME = "video-trimmer-app-v11";
 const APP_ASSETS = [
     "./",
     "./index.html",

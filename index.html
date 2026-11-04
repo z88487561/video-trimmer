@@ -4,18 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#123c66">
-    <meta name="description" content="在瀏覽器本機裁切、旋轉、調整比例及壓縮影片，不上傳。">
+    <meta name="description" content="在瀏覽器本機裁切影片，不上傳、不重新編碼。">
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" href="./icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./app.css">
-    <title>本機影片裁切與編輯</title>
+    <title>本機影片無損裁切</title>
 </head>
 <body>
     <main class="app">
         <header class="topbar">
-            <a class="brand" href="./index.html" aria-label="本機影片裁切與編輯首頁">
+            <a class="brand" href="./index.html" aria-label="本機影片無損裁切首頁">
                 <span class="brand-icon" aria-hidden="true">✂</span>
-                <span>本機影片裁切與編輯</span>
+                <span>本機影片無損裁切</span>
             </a>
             <div class="top-actions">
                 <button class="button button-quiet" id="installButton" type="button" hidden>安裝 PWA</button>
@@ -24,144 +24,57 @@
 
         <section class="intro">
             <p class="eyebrow">只在你的裝置上處理</p>
-            <h1>裁切與編輯影片</h1>
-            <p>調整時間範圍、畫面比例、方向及輸出品質；影片只在你的裝置上處理。</p>
+            <h1>裁掉片頭與片尾</h1>
+            <p>保留選定區間並直接複製影音資料，不重新編碼、不上傳影片。</p>
         </section>
 
         <section class="workspace" aria-label="影片裁切工作區">
             <div class="preview-panel">
-                <div class="video-stage" id="videoStage">
-                    <video id="preview" controls playsinline preload="metadata" aria-label="影片預覽"></video>
-                    <div class="crop-frame" id="cropFrame" role="group" aria-label="拖曳或使用方向鍵調整畫面裁切位置" tabindex="0" hidden>
-                        <span>拖曳調整裁切位置</span>
-                    </div>
-                </div>
-                <div class="trim-timeline" aria-label="拖曳選擇保留的時間範圍">
-                    <div class="timeline-playback">
-                        <span>播放位置 <output id="playbackTime">00:00:00.00</output></span>
-                        <span id="durationLabel" class="duration">總長度 —</span>
-                    </div>
-                    <div class="timeline-boundaries">
-                        <span>起點 <output id="startRangeLabel">00:00:00.00</output></span>
-                        <span>終點 <output id="endRangeLabel">00:00:00.00</output></span>
-                    </div>
-                    <div class="timeline-track" id="timelineTrack">
-                        <div class="timeline-selection" id="timelineSelection"></div>
-                        <div class="timeline-playhead" id="timelinePlayhead"></div>
-                        <input id="startRange" class="timeline-range timeline-range-start" type="range" min="0" max="0" step="0.01" value="0" aria-label="拖曳調整裁切開始時間" disabled>
-                        <input id="endRange" class="timeline-range timeline-range-end" type="range" min="0" max="0" step="0.01" value="0" aria-label="拖曳調整裁切結束時間" disabled>
-                    </div>
-                </div>
+                <video id="preview" controls playsinline preload="metadata" aria-label="影片預覽"></video>
                 <label class="file-picker button button-primary" for="videoFile">選擇影片</label>
                 <input id="videoFile" type="file" accept="video/*,.mkv,.avi,.mov,.webm,.mp4,.m4v,.mts,.m2ts,.ts,.3gp,.ogv">
                 <p id="fileName" class="file-name">尚未選取影片</p>
             </div>
 
             <div class="edit-panel">
-                <details class="fold-section">
-                    <summary class="fold-summary">
-                        <span>保留的時間範圍</span>
-                        <span class="fold-indicator" aria-hidden="true"></span>
-                    </summary>
-                    <div class="time-fields">
-                        <label class="time-field">
-                            <span>開始時間</span>
-                            <input id="startTime" type="number" min="0" step="0.01" value="0" inputmode="decimal" aria-label="裁切開始秒數">
-                            <span class="unit">秒</span>
-                        </label>
-                        <button class="button button-quiet mark-button" id="markStart" type="button" disabled>設為目前播放位置</button>
-                        <label class="time-field">
-                            <span>結束時間</span>
-                            <input id="endTime" type="number" min="0" step="0.01" value="0" inputmode="decimal" aria-label="裁切結束秒數">
-                            <span class="unit">秒</span>
-                        </label>
-                        <button class="button button-quiet mark-button" id="markEnd" type="button" disabled>設為目前播放位置</button>
-                    </div>
-                </details>
-                <details class="fold-section">
-                    <summary class="fold-summary">
-                        <span>輸出選項</span>
-                        <span class="fold-description">可不選，維持無損裁切</span>
-                        <span class="fold-indicator" aria-hidden="true"></span>
-                    </summary>
-                    <section class="options-panel" aria-label="影片輸出選項">
-                    <label class="check-option">
-                        <input id="removeAudio" type="checkbox">
-                        <span>移除音訊</span>
+                <div class="section-title">
+                    <h2>保留的時間範圍</h2>
+                    <span id="durationLabel" class="duration">總長度 —</span>
+                </div>
+                <div class="time-fields">
+                    <label class="time-field">
+                        <span>開始時間</span>
+                        <input id="startTime" type="number" min="0" step="0.01" value="0" inputmode="decimal" aria-label="裁切開始秒數">
+                        <span class="unit">秒</span>
                     </label>
-                    <label class="select-option">
-                        <span>順時針旋轉</span>
-                        <select id="rotation">
-                            <option value="0">不旋轉</option>
-                            <option value="90">90°</option>
-                            <option value="180">180°</option>
-                            <option value="270">270°</option>
-                        </select>
+                    <button class="button button-quiet mark-button" id="markStart" type="button" disabled>設為目前播放位置</button>
+                    <label class="time-field">
+                        <span>結束時間</span>
+                        <input id="endTime" type="number" min="0" step="0.01" value="0" inputmode="decimal" aria-label="裁切結束秒數">
+                        <span class="unit">秒</span>
                     </label>
-                    <label class="select-option">
-                        <span>畫面比例</span>
-                        <select id="aspectRatio">
-                            <option value="original">保持原比例</option>
-                            <option value="9:16">直式 9:16</option>
-                            <option value="1:1">正方形 1:1</option>
-                            <option value="4:5">直式 4:5</option>
-                            <option value="16:9">橫式 16:9</option>
-                            <option value="custom">自訂比例</option>
-                        </select>
-                    </label>
-                    <div class="custom-ratio" id="customRatio" hidden>
-                        <label>寬 <input id="ratioWidth" type="number" min="1" max="100" step="1" value="9"></label>
-                        <span>：</span>
-                        <label>高 <input id="ratioHeight" type="number" min="1" max="100" step="1" value="16"></label>
-                    </div>
-                    <p class="small-note crop-hint" id="cropHint" hidden>可在左側預覽拖曳裁切框，調整要保留的畫面位置。</p>
-                    <label class="check-option compression-toggle">
-                        <input id="compressVideo" type="checkbox">
-                        <span>壓縮影片（重新編碼）</span>
-                    </label>
-                    <div class="compression-options" id="compressionOptions" hidden>
-                        <label class="select-option">
-                            <span>輸出解析度</span>
-                            <select id="resolution">
-                                <option value="auto" selected>自動</option>
-                                <option value="720">720p</option>
-                                <option value="480">480p</option>
-                            </select>
-                        </label>
-                        <label class="select-option">
-                            <span>品質</span>
-                            <select id="quality">
-                                <option value="23">高品質</option>
-                                <option value="28" selected>一般</option>
-                                <option value="33">較小檔案</option>
-                            </select>
-                        </label>
-                    </div>
-                    <p class="small-note compression-hint" id="compressionHint">自動：縮至 720p 或 480p；720p／480p 選項只在來源高於該解析度時可選。</p>
-                    <p class="small-note">旋轉、調整比例或需要縮小解析度時會重新編碼並輸出 MP4；壓縮只會縮小，不會放大。低於或等於 480p 的來源不會因壓縮選項而重新編碼。</p>
-                    </section>
-                </details>
+                    <button class="button button-quiet mark-button" id="markEnd" type="button" disabled>設為目前播放位置</button>
+                </div>
 
                 <div class="notice notice-warning">
                     <strong>無重新編碼的限制</strong>
-                    <p>無損裁切只能在影音封包／關鍵影格邊界裁切，實際起訖點可能與輸入時間略有差異；逐影格精準則需重新編碼。</p>
+                    <p>只能在影音封包／關鍵影格邊界裁切，實際起訖點可能與輸入時間略有差異；若要求逐影格精準，必須重新編碼。</p>
                 </div>
                 <div class="notice notice-info" id="privacyNotice">
                     <strong>本機處理</strong>
-                    <p>影片只會由瀏覽器讀取。第一次處理會從 jsDelivr 下載約 32 MB 的處理引擎並快取於本機；影片內容不會傳送到網路。</p>
+                    <p>影片只會由瀏覽器讀取。第一次裁切會從 jsDelivr 下載約 32 MB 的處理引擎並快取於本機；影片內容不會傳送到網路。</p>
                 </div>
                 <p class="small-note">請由 localhost 或 HTTPS 開啟；直接以 file:// 開啟時，瀏覽器會停用 PWA 與本機處理 Worker。</p>
 
                 <button class="button button-primary trim-button" id="trimButton" type="button" disabled>裁切並下載</button>
-                <p id="processingMode" class="processing-mode">目前模式：封包複製，不重新編碼影片。</p>
                 <p id="status" class="status" role="status" aria-live="polite">請先選擇影片。</p>
                 <a id="downloadLink" class="button button-success download-link" hidden>未開始下載？點此重試</a>
-                <p class="small-note">支援容器依 FFmpeg 核心與瀏覽器而異。影片處理及輸出暫存均在本機進行；超大型檔案受瀏覽器可用記憶體限制。</p>
+                <p class="small-note">支援容器依 FFmpeg 核心與瀏覽器而異；輸出維持原副檔名及影音編碼。超大型輸出仍受瀏覽器可用記憶體限制。</p>
             </div>
         </section>
 
         <footer>
-            <span>本機處理 · 不上傳 · 由瀏覽器執行</span>
+            <span>不重新編碼 · 不上傳 · 由瀏覽器本機執行</span>
             <span id="pwaStatus">PWA 狀態確認中…</span>
         </footer>
     </main>

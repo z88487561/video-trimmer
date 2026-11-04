@@ -1,7 +1,7 @@
 {
-  "name": "本機影片裁切與編輯",
+  "name": "本機影片無損裁切",
   "short_name": "影片裁切",
-  "description": "在瀏覽器本機裁切、旋轉、調整比例及壓縮影片，不上傳。",
+  "description": "在瀏覽器本機以串流複製裁切影片，不上傳、不重新編碼。",
   "lang": "zh-Hant",
   "start_url": "./index.html",
   "scope": "./",
