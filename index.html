@@ -7,6 +7,7 @@
     <meta name="description" content="在瀏覽器本機裁切、旋轉、調整比例及壓縮影片，不上傳。">
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" href="./icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
     <link rel="stylesheet" href="./app.css">
     <title>本機影片裁切與編輯</title>
 </head>
@@ -200,7 +201,7 @@
 (function(){
 var C={"name": "本機影片裁切與編輯", "install": false, "ls": [], "idb": [], "cache": ["video-trimmer-"], "mount": {"sel": ".top-actions", "cls": "button button-quiet", "label": "⚙"}, "th": {"bg": "#fff", "fg": "#172b42", "mu": "#5a6f84", "bd": "#d3dee8", "ac": "#1769aa", "acfg": "#fff", "dan": "#c62828", "nb": "#f3f6fa", "r": "12px"}};
 if(window.PWAManage)return;
-var dip=null,host,sr,trig,wiping=false;
+var dip=null,host,sr,trig,inst,mlOrig,wiping=false;
 var sa=function(){try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
 var ios=function(){return /iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)};
 var cap=function(){try{return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())}catch(e){return false}};
@@ -214,6 +215,7 @@ function upd(){
   if(!sr)return;
   var b=q('#i'),t=q('#t'),s=sa();
   b.hidden=!(C.install&&dip&&!s);
+  if(inst){var v=!!(C.install&&dip&&!s);inst.hidden=!v;if(trig&&mlOrig==='auto')trig.style.marginLeft=v?'0':'auto'}
   t.textContent=cap()?'App 版本：要移除請到系統設定的應用程式':s?'已安裝（目前以 App 模式開啟）':!C.install?'':dip?'可安裝到桌面／主畫面':ios()?'iPhone／iPad：Safari 分享 → 加入主畫面':'可用瀏覽器選單的「安裝應用程式」（若已安裝，可能偵測不到）';
 }
 function theme(){
@@ -249,6 +251,14 @@ function build(){
     trig.textContent=m.label||'⚙';trig.title=m.title||'App 安裝與資料管理';trig.setAttribute('aria-label',m.title||'App 安裝與資料管理');
     trig.onclick=open;
     if(m.pos==='after')at.after(trig);else if(m.pos==='before')at.before(trig);else at.appendChild(trig);
+    mlOrig=trig.style.marginLeft;
+    if(C.inst){
+      inst=document.createElement('button');inst.type='button';inst.id='pwa-install-btn';inst.hidden=true;
+      inst.className=C.inst.cls||'';if(C.inst.style)inst.style.cssText=C.inst.style;
+      inst.textContent=C.inst.label||'安裝 App';
+      inst.onclick=function(){if(!dip)return;try{dip.prompt();dip.userChoice&&dip.userChoice.then(function(){dip=null;upd()},function(){})}catch(e){}};
+      trig.before(inst);
+    }
   }
   q('#c').onclick=close;
   q('#m').onclick=function(e){if(e.target.id==='m')close()};

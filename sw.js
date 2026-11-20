@@ -1,4 +1,4 @@
-const CACHE_NAME = "video-trimmer-app-v17";
+const CACHE_NAME = "video-trimmer-app-v18";
 const APP_ASSETS = [
     "./",
     "./index.html",
@@ -6,6 +6,10 @@ const APP_ASSETS = [
     "./app.js",
     "./manifest.webmanifest",
     "./icon.svg",
+    "./icons/icon-192.png",
+    "./icons/icon-512.png",
+    "./icons/maskable-512.png",
+    "./icons/apple-touch-icon.png",
     "./vendor/ffmpeg/classes.js",
     "./vendor/ffmpeg/const.js",
     "./vendor/ffmpeg/errors.js",
